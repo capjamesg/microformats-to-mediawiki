@@ -4,6 +4,7 @@ from typing import Dict, Tuple
 import mf2py
 import requests
 from bs4 import BeautifulSoup
+import math
 
 from config import API_URL
 
@@ -61,10 +62,14 @@ def update_existing_review_section(
     )
     page_text_aggregate = page_text_aggregate.group(0)
 
+    star_no_decimal_places = round(stars)
+
+    star_emojis = "⭐" * star_no_decimal_places
+
     # replace h-review-aggregate
     page_text = page_text.replace(
         page_text_aggregate,
-        f"\n\n<div class='h-review-aggregate'><span class='p-item'>{h_review['name'][0]}</span> aggregate review: <data value='{stars}' class='p-average'>{stars}</data>/<data value='5' class='p-best'>5</data> (<data value='{len(ratings)}' class='p-votes'>{len(ratings)}</data> ratings)</div>\n\n{addyourself}\n",
+        f"\n\n<div class='h-review-aggregate'><span class='p-item'>{h_review['name'][0]}</span> aggregate review: {star_emojis} - <data value='{stars}' class='p-average'>{stars}</data>/<data value='5' class='p-best'>5</data> (<data value='{len(ratings)}' class='p-votes'>{len(ratings)}</data> ratings)</div>\n\n{addyourself}\n",
     )
 
     return page_text
@@ -73,11 +78,15 @@ def update_existing_review_section(
 def create_new_review_section(
     address: dict, content_url: str, h_review: dict, domain: str, page_text: str
 ) -> str:
+    star_no_decimal_places = round(h_review['rating'][0])
+
+    star_emojis = "⭐" * star_no_decimal_places
+
     page_text += "\n\n<div class='h-feed'>\n== Reviews ==\n\n"
 
     page_text += f"<div class='h-review'>\n=== <a href='{content_url}' class='p-name'>{h_review['name'][0]}</a> by {domain} - <data value='{h_review['rating'][0]}' class='p-rating'>{h_review['rating'][0]} stars</data> ===\n<blockquote>{h_review['content'][0]['html']}</blockquote></div>"
 
-    page_text += f"\n<div class='h-review-aggregate'><span class='p-item'>{h_review['name'][0]}</span> aggregate review: <data value='{h_review['rating'][0]}' class='p-average'>{h_review['rating'][0]}</data>/<data value='5' class='p-best'>5</data> (<data value='1' class='p-votes'>1</data> rating)\n{addyourself}</div>"
+    page_text += f"\n<div class='h-review-aggregate'><span class='p-item'>{h_review['name'][0]}</span> aggregate review: {star_emojis} - <data value='{h_review['rating'][0]}' class='p-average'>{h_review['rating'][0]}</data>/<data value='5' class='p-best'>5</data> (<data value='1' class='p-votes'>1</data> rating)\n{addyourself}</div>"
 
     page_text += f"[[Category:{address['city']}]]"
     page_text += f"[[Category:{address['country']}]]"
