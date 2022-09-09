@@ -1,11 +1,18 @@
 from typing import Dict, Tuple
+from urllib.parse import urlparse as urlparse_func
 
 import mf2py
 import requests
 
 from config import LGNAME, LGPASSWORD, SYNDICATION_LINK
+from hreview import parse_h_review
+
 
 class SyndicationLinkNotPresent(Exception):
+    pass
+
+
+class UserNotAuthorized(Exception):
     pass
 
 
@@ -53,10 +60,53 @@ def get_csrf_token(url: str, session: requests.Session) -> requests.Response:
     return csrf_token_request
 
 
+def get_list_of_authorized_users(url: str, session: requests.Session) -> Dict[str, str]:
+    get_list_of_authorized_users_params = {
+        "action": "query",
+        "list": "allusers",
+        "format": "json",
+    }
+
+    try:
+        list_of_authorized_users_request = session.get(
+            url, params=get_list_of_authorized_users_params
+        )
+    except requests.exceptions.RequestException:
+        raise Exception
+
+    authorized_users = list_of_authorized_users_request.json()["query"]["allusers"]
+
+    dictionary_of_authorized_users = {k["name"].lower(): "" for k in authorized_users}
+
+    return dictionary_of_authorized_users
+
+
+def verify_user_is_authorized(
+    url: str, user_domain: str, session: requests.Session
+) -> None:
+    authorized_users = get_list_of_authorized_users(url, session)
+
+    if not authorized_users.get(user_domain.lower()):
+        raise UserNotAuthorized
+
+
 def parse_url(
     content_url: str, csrf_token_request: requests.Response
 ) -> Tuple[Dict[str, str], str]:
     content_parsed = mf2py.parse(url=content_url)
+
+    h_review = [e for e in content_parsed["items"] if e["type"][0] == "h-review"][0][
+        "properties"
+    ]
+
+    domain = urlparse_func(content_url).netloc
+
+    csrf_token = csrf_token_request.json()["query"]["tokens"]["csrftoken"]
+
+    if h_review:
+        content_details = parse_h_review(h_review, content_parsed, content_url, domain)
+
+        return content_details, csrf_token
 
     h_entry = [e for e in content_parsed["items"] if e["type"][0] == "h-entry"][0][
         "properties"
@@ -67,10 +117,9 @@ def parse_url(
     # check for syndication link
     if not h_entry.get("syndication"):
         raise SyndicationLinkNotPresent
-        
+
     if not SYNDICATION_LINK in h_entry.get("syndication"):
         raise SyndicationLinkNotPresent
-
 
     content_details = {
         "name": h_entry["name"][0],
@@ -78,17 +127,14 @@ def parse_url(
         "url": h_entry["url"][0],
     }
 
-    csrf_token = csrf_token_request.json()["query"]["tokens"]["csrftoken"]
-
     content_details["content"]["html"] = (
         content_details["content"]["html"]
         + f"\nThis page was originally created on {content_details['url']}."
     )
 
     # add p-category properties to main article content
-    content_details["content"]["html"] = (
-        content_details["content"]["html"]
-        + "\n".join(categories)
+    content_details["content"]["html"] = content_details["content"]["html"] + "\n".join(
+        categories
     )
 
     return content_details, csrf_token
@@ -106,7 +152,7 @@ def submit_edit_request(
         "title": content_details["name"],
         "text": content_details["content"]["html"],
         "format": "json",
-        "summary": "New page created by coffeebot",
+        "summary": f"New page created by coffeebot from {content_details['url']}",
         "token": csrf_token,
         "bot": False,
     }
@@ -115,4 +161,3 @@ def submit_edit_request(
         session.post(api_url, data=edit_page_params)
     except requests.exceptions.RequestException:
         raise Exception
-    
