@@ -1,6 +1,6 @@
 from urllib.parse import urlparse as urlparse_func
 
-from flask import Flask, abort, jsonify, request
+from flask import Flask, abort, jsonify, request, Response
 
 from config import API_URL, PASSPHRASE
 from mediawiki import (
@@ -17,7 +17,7 @@ from mediawiki import (
 app = Flask(__name__)
 
 
-@app.route("/webhook", methods=["GET", "POST"])
+@app.route("/webhook", methods=["POST"])
 def submit_post():
     passphrase = request.args.get("passphrase")
 
@@ -53,4 +53,8 @@ def submit_post():
     except SyndicationLinkNotPresent as e:
         abort(400)
 
-    return jsonify({"success": True}), 200
+    # set Location header
+    response = Response(status=201)
+    response.headers["Location"] = url_to_parse
+
+    return response
