@@ -21,12 +21,11 @@ app = Flask(__name__)
 def submit_post():
     passphrase = request.args.get("passphrase")
 
-    # if passphrase != PASSPHRASE:
-    #     abort(403)
+    if passphrase != PASSPHRASE:
+        abort(403)
 
-    # url_to_parse = request.json.get("post", {}).get("url", "")
+    url_to_parse = request.json.get("post", {}).get("url", "")
 
-    url_to_parse = request.args.get("url")
     domain = urlparse_func(url_to_parse).netloc
 
     if url_to_parse == "":
@@ -39,10 +38,10 @@ def submit_post():
     csrf_token_request = get_csrf_token(API_URL, session)
 
     # user must be on approved list of domains
-    # try:
-    #     verify_user_is_authorized(API_URL, domain, session)
-    # except UserNotAuthorized:
-    #     return abort(403)
+    try:
+        verify_user_is_authorized(API_URL, domain, session)
+    except UserNotAuthorized:
+        return abort(403)
 
     try:
         content_details, csrf_token = parse_url(
