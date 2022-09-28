@@ -9,14 +9,34 @@ from hreview import parse_h_review
 
 
 class SyndicationLinkNotPresent(Exception):
+    """
+    A u-syndication link is not present on a page.
+
+    See more about this link on the IndieWeb wiki:
+
+    https://indieweb.org/u-syndication
+    """
     pass
 
 
 class UserNotAuthorized(Exception):
+    """
+    A user is not authorised to edit the MediaWiki page.
+    """
     pass
 
 
 def get_login_token_state(url: str) -> Tuple[requests.Session, requests.Response]:
+    """
+    Gets a login token from the MediaWiki API.
+
+    :param url: The URL of the MediaWiki API.
+    :type url: str
+    :return: A tuple containing the session and the login token request.
+    :rtype: Tuple[requests.Session, requests.Response]
+
+    :raises requests.exceptions.RequestException: If the request to get the login token fails.
+    """
     session = requests.Session()
 
     # get token
@@ -24,15 +44,25 @@ def get_login_token_state(url: str) -> Tuple[requests.Session, requests.Response
 
     try:
         token_request = session.get(url, params=params)
-    except requests.exceptions.RequestException:
-        raise Exception
+    except requests.exceptions.RequestException as exception:
+        raise exception
 
     return token_request, session
 
 
 def log_in(
     url: str, token_request: str, session: requests.Session
-) -> requests.Response:
+):
+    """
+    Log in to the MediaWiki API.
+
+    :param url: The URL of the MediaWiki API.
+    :type url: str
+    :param token_request: A login token retrieved from the MediaWiki API.
+    :type token_request: str
+    :param session: A session object used to make requests to the API.
+    :type session: requests.Session
+    """
     login_token = token_request.json()["query"]["tokens"]["logintoken"]
 
     request_to_log_in_params = {
@@ -50,6 +80,17 @@ def log_in(
 
 
 def get_csrf_token(url: str, session: requests.Session) -> requests.Response:
+    """
+    Gets a CSRF token from the MediaWiki API.
+
+    :param url: The URL of the MediaWiki API.
+    :type url: str
+    :param session: A session object used to make requests to the API.
+    :type session: requests.Session
+
+    :return: A CSRF token response from the MediaWiki API.
+    :rtype: requests.Response
+    """
     get_csrf_token_params = {"action": "query", "meta": "tokens", "format": "json"}
 
     try:
@@ -57,10 +98,22 @@ def get_csrf_token(url: str, session: requests.Session) -> requests.Response:
     except requests.exceptions.RequestException:
         raise Exception
 
-    return csrf_token_request
+    csrf_token = csrf_token_request.json()["query"]["tokens"]["csrftoken"]
+
+    return csrf_token
 
 
 def get_list_of_authorized_users(url: str, session: requests.Session) -> Dict[str, str]:
+    """
+    Gets a list of all users on a MediaWiki.
+
+    :param url: The URL of the MediaWiki API.
+    :type url: str
+    :param session: A session object used to make requests to the API.
+    :type session: requests.Session
+    :return: A dictionary of all users on the MediaWiki.
+    :rtype: Dict[str, str]
+    """
     get_list_of_authorized_users_params = {
         "action": "query",
         "list": "allusers",
@@ -76,7 +129,7 @@ def get_list_of_authorized_users(url: str, session: requests.Session) -> Dict[st
 
     authorized_users = list_of_authorized_users_request.json()["query"]["allusers"]
 
-    dictionary_of_authorized_users = {k["name"].lower(): "" for k in authorized_users}
+    dictionary_of_authorized_users = {k["name"].lower(): True for k in authorized_users}
 
     return dictionary_of_authorized_users
 
@@ -84,6 +137,18 @@ def get_list_of_authorized_users(url: str, session: requests.Session) -> Dict[st
 def verify_user_is_authorized(
     url: str, user_domain: str, session: requests.Session
 ) -> None:
+    """
+    Checks if a user is authorised to make changes to the wiki.
+
+    :param url: The URL of the MediaWiki API.
+    :type url: str
+    :param user_domain: The domain of the user who wants to make changes to the wiki.
+    :type user_domain: str
+    :param session: A session object used to make requests to the API.
+    :type session: requests.Session
+
+    :raises UserNotAuthorized: If the user is not authorised to make changes to the wiki.
+    """
     authorized_users = get_list_of_authorized_users(url, session)
 
     if not authorized_users.get(user_domain.lower()):
@@ -91,8 +156,22 @@ def verify_user_is_authorized(
 
 
 def parse_url(
-    content_url: str, csrf_token_request: requests.Response
-) -> Tuple[Dict[str, str], str]:
+    content_url: str, csrf_token: str
+) -> Tuple[Dict[str, str]]:
+    """
+    Retrieves a h-review or h-entry from a URL, checks for a syndication link,
+    and makes a dictionary with information that will be used to create the
+    new wiki page (or update an existing one).
+
+    :param content_url: The URL of the content to be parsed.
+    :type content_url: str
+    :param csrf_token_request: A CSRF token retrieved from the MediaWiki API.
+    :type csrf_token_request: str
+    :return: A tuple containing a dictionary of information about the content for the new wiki page.
+
+    :raises requests.exceptions.RequestException: The request to get the content on a page fails.
+    :raises SyndicationLinkNotPresent: The specified URL does not have a syndication link to the MediaWiki instance.
+    """
     content_parsed = mf2py.parse(url=content_url)
 
     h_review = [e for e in content_parsed["items"] if e["type"][0] == "h-review"][0][
@@ -100,8 +179,6 @@ def parse_url(
     ]
 
     domain = urlparse_func(content_url).netloc
-
-    csrf_token = csrf_token_request.json()["query"]["tokens"]["csrftoken"]
 
     if h_review:
         content_details = parse_h_review(h_review, content_parsed, content_url, domain)
@@ -146,7 +223,22 @@ def submit_edit_request(
     api_url: str,
     csrf_token: str,
 ) -> None:
-    # edit a page
+    """
+    Submits an edit request to the MediaWiki API.
+    
+    Edit requests create a new page if the specified page does not exist.
+
+    :param content_details: A dictionary of information about the page to edit.
+    :type content_details: Dict[str, str]
+    :param session: A session object used to make requests to the API.
+    :type session: requests.Session
+    :param api_url: The URL of the MediaWiki API.
+    :type api_url: str
+    :param csrf_token: A CSRF token retrieved from the MediaWiki API.
+    :type csrf_token: str
+
+    :raises requests.exceptions.RequestException: The edit request failed.
+    """
     edit_page_params = {
         "action": "edit",
         "title": content_details["name"],
@@ -159,5 +251,5 @@ def submit_edit_request(
 
     try:
         session.post(api_url, data=edit_page_params)
-    except requests.exceptions.RequestException:
-        raise Exception
+    except requests.exceptions.RequestException as exception:
+        raise exception

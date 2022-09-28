@@ -4,7 +4,6 @@ from typing import Dict, Tuple
 import mf2py
 import requests
 from bs4 import BeautifulSoup
-import math
 
 from config import API_URL
 
@@ -12,6 +11,17 @@ addyourself = "{{" + "addyourself" + "}}"
 
 
 def create_infobox(latitude: int, longitude: int, page_text: str) -> Tuple[str, str]:
+    """
+    Creates an infobox with location information about a place.
+
+    :param latitude: Latitude of the place
+    :type latitude: float
+    :param longitude: Longitude of the place
+    :type longitude: float
+    :param page_text: The text of the wiki page to create
+    :return: A tuple with the text of the page with the infobox added and the address of the place
+    :rtype: Tuple[str, str]
+    """
     # if section does not exist, create it
     try:
         nominatim_information = requests.get(
@@ -40,6 +50,20 @@ def create_infobox(latitude: int, longitude: int, page_text: str) -> Tuple[str, 
 def update_existing_review_section(
     review_section_start: int, content_url: str, h_review: str, domain: str
 ) -> str:
+    """
+    Adds a new review to an existing review section.
+
+    :param review_section_start: The index of the start of the review section
+    :type review_section_start: int
+    :param content_url: The URL of the new review
+    :type content_url: str
+    :param h_review: The h-review object that contains the new review
+    :type h_review: str
+    :param domain: The domain of the person who wrote the review
+    :type domain: str
+    :return: The text of the page with the new review added and an updateed aggregate review
+    :rtype: str
+    """
     page_text_after_reviews = page_text[review_section_start:]
 
     page_text += f"<div class='h-review'>\n=== <a href='{content_url}' class='p-name'>{h_review['name'][0]}</a> by {domain} - <data value='{h_review['rating'][0]}' class='p-rating'>{h_review['rating'][0]} stars</data> ===\n<blockquote>{h_review['content'][0]['html']}</blockquote></div>"
@@ -78,7 +102,23 @@ def update_existing_review_section(
 def create_new_review_section(
     address: dict, content_url: str, h_review: dict, domain: str, page_text: str
 ) -> str:
-    star_no_decimal_places = round(h_review['rating'][0])
+    """
+    Creates a new "Reviews" section at the bottom of a wiki page.
+
+    :param address: The address of the topic of the page
+    :type address: dict
+    :param content_url: The URL of the new review
+    :type content_url: str
+    :param h_review: The h-review object that contains the new review
+    :type h_review: dict
+    :param domain: The domain of the person who wrote the review
+    :type domain: str
+    :param page_text: The text of the wiki page to create
+    :type page_text: str
+    :return: The text of the page with a new reviews section and categories set
+        for the city and country of the place being reviewed
+    """
+    star_no_decimal_places = round(h_review["rating"][0])
 
     star_emojis = "⭐" * star_no_decimal_places
 
@@ -96,7 +136,21 @@ def create_new_review_section(
 
 def parse_h_review(
     h_review: dict, content_parsed: dict, content_url: str, domain: str
-) -> Tuple[Dict[str, str], str]:
+) -> Dict[str, str]:
+    """
+    Parses a h-review object and returns the contents for the new or revised wiki page.
+
+    :param h_review: The h-review object to parse
+    :type h_review: dict
+    :param content_parsed: The parsed microformats of the page, used to look for a h-geo object
+    :type content_parsed: dict
+    :param content_url: The URL of the page that contains the review
+    :type content_url: str
+    :param domain: The domain of the person who wrote the review
+    :type domain: str
+    :return: The information needed to create the new wiki page.
+    :rtype: Dict[str, str]
+    """
     page_content = {
         "action": "query",
         "prop": "revisions",
@@ -113,7 +167,7 @@ def parse_h_review(
         page_text = page_content_request.json()["query"]["pages"][0]["revisions"][0][
             "slots"
         ]["main"]["content"]
-    except Exception as e:
+    except Exception:
         page_text = ""
 
     # get == Reviews == section
