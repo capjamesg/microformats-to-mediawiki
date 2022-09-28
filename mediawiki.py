@@ -1,4 +1,4 @@
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Any
 from urllib.parse import urlparse as urlparse_func
 
 import mf2py
@@ -52,14 +52,14 @@ def get_login_token_state(url: str) -> Tuple[requests.Response, requests.Session
     return token_request, session
 
 
-def log_in(url: str, token_request: str, session: requests.Session):
+def log_in(url: str, token_request: requests.Response, session: requests.Session):
     """
     Log in to the MediaWiki API.
 
     :param url: The URL of the MediaWiki API.
     :type url: str
-    :param token_request: A login token retrieved from the MediaWiki API.
-    :type token_request: str
+    :param token_request: A login token response retrieved from the MediaWiki API.
+    :type token_request: requests.Response
     :param session: A session object used to make requests to the API.
     :type session: requests.Session
     """
@@ -79,7 +79,7 @@ def log_in(url: str, token_request: str, session: requests.Session):
         raise Exception
 
 
-def get_csrf_token(url: str, session: requests.Session) -> requests.Response:
+def get_csrf_token(url: str, session: requests.Session) -> str:
     """
     Gets a CSRF token from the MediaWiki API.
 
@@ -155,7 +155,7 @@ def verify_user_is_authorized(
         raise UserNotAuthorized
 
 
-def parse_url(content_url: str, csrf_token: str) -> Tuple[Dict[str, str], str]:
+def parse_url(content_url: str, csrf_token: str) -> Tuple[Dict[str, Any], str]:
     """
     Retrieves a h-review or h-entry from a URL, checks for a syndication link,
     and makes a dictionary with information that will be used to create the
@@ -183,23 +183,44 @@ def parse_url(content_url: str, csrf_token: str) -> Tuple[Dict[str, str], str]:
 
         return content_details, csrf_token
 
-    h_entry = [e for e in content_parsed["items"] if e["type"][0] == "h-entry"][0][
-        "properties"
-    ]
+    h_entry = [e for e in content_parsed["items"] if e["type"][0] == "h-entry"]
 
-    categories = [f"[[Category:{c}]]" for c in h_entry["category"]]
+    if len(h_entry) == 0:
+        raise Exception
+
+    h_entry_item = h_entry[0].get("properties")
+
+    if not h_entry_item:
+        raise Exception
+
+    categories = [f"[[Category:{c}]]" for c in h_entry_item["category"]]
 
     # check for syndication link
-    if not h_entry.get("syndication"):
+    if not h_entry_item.get("syndication"):
         raise SyndicationLinkNotPresent
 
-    if SYNDICATION_LINK not in h_entry.get("syndication"):
+    if SYNDICATION_LINK not in h_entry_item.get("syndication"):
         raise SyndicationLinkNotPresent
+
+    name = h_entry_item.get("name") or ""
+
+    if isinstance(name, list):
+        name = name[0]
+
+    content = h_entry_item.get("content") or ""
+
+    if isinstance(content, list):
+        content = content[0]
+
+    url = h_entry_item.get("url") or ""
+
+    if isinstance(url, list):
+        url = url[0]
 
     content_details = {
-        "name": h_entry["name"][0],
-        "content": h_entry["content"][0],
-        "url": h_entry["url"][0],
+        "name": name,
+        "content": content,
+        "url": url,
     }
 
     content_details["content"]["html"] = (

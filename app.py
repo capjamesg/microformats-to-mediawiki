@@ -23,7 +23,15 @@ def submit_post():
     if passphrase != PASSPHRASE:
         abort(403)
 
-    url_to_parse = request.json.get("post", {}).get("url", "")
+    if request.json is None:
+        abort(400)
+
+    url_to_parse = request.json.get("post")
+    
+    if url_to_parse is None:
+        abort(400)
+    
+    url_to_parse = url_to_parse.get("url", "")
 
     domain = urlparse_func(url_to_parse).netloc
 

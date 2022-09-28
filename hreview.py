@@ -10,7 +10,7 @@ from config import API_URL
 addyourself = "{{" + "addyourself" + "}}"
 
 
-def create_infobox(latitude: int, longitude: int, page_text: str) -> Tuple[str, str]:
+def create_infobox(latitude: int, longitude: int, page_text: str) -> Tuple[str, dict]:
     """
     Creates an infobox with location information about a place.
 
@@ -50,7 +50,7 @@ def create_infobox(latitude: int, longitude: int, page_text: str) -> Tuple[str, 
 def update_existing_review_section(
     review_section_start: int,
     content_url: str,
-    h_review: str,
+    h_review: dict,
     domain: str,
     page_text: str,
 ) -> str:
@@ -62,7 +62,7 @@ def update_existing_review_section(
     :param content_url: The URL of the new review
     :type content_url: str
     :param h_review: The h-review object that contains the new review
-    :type h_review: str
+    :type h_review: dict
     :param domain: The domain of the person who wrote the review
     :type domain: str
     :param page_text: The text of the wiki page to create
@@ -96,23 +96,25 @@ def update_existing_review_section(
     page_text_aggregate = re.search(
         r"<div class='h-review-aggregate'>.*?</div>", page_text, re.DOTALL
     )
-    page_text_aggregate = page_text_aggregate.group(0)
 
-    star_no_decimal_places = round(stars)
+    if page_text_aggregate:
+        page_text_aggregate = page_text_aggregate.group(0)
 
-    star_emojis = "⭐" * star_no_decimal_places
+        star_no_decimal_places = round(int(stars), 0)
 
-    # replace h-review-aggregate
-    page_text = page_text.replace(
-        page_text_aggregate,
-        f"""\n\n<div class='h-review-aggregate'>
-            <span class='p-item'>{h_review['name'][0]}</span>
-            aggregate review: {star_emojis} -
-            <data value='{stars}' class='p-average'>{stars}</data>
-            /<data value='5' class='p-best'>5</data>
-             (<data value='{len(ratings)}' class='p-votes'>{len(ratings)}</data>
-            ratings)</div>\n\n{addyourself}\n""",
-    )
+        star_emojis = "⭐" * star_no_decimal_places
+
+        # replace h-review-aggregate
+        page_text = page_text.replace(
+            page_text_aggregate,
+            f"""\n\n<div class='h-review-aggregate'>
+                <span class='p-item'>{h_review['name'][0]}</span>
+                aggregate review: {star_emojis} -
+                <data value='{stars}' class='p-average'>{stars}</data>
+                /<data value='5' class='p-best'>5</data>
+                (<data value='{len(ratings)}' class='p-votes'>{len(ratings)}</data>
+                ratings)</div>\n\n{addyourself}\n""",
+        )
 
     return page_text
 
@@ -124,7 +126,7 @@ def create_new_review_section(
     Creates a new "Reviews" section at the bottom of a wiki page.
 
     :param address: The address of the topic of the page
-    :type address: dict
+    :type address: str
     :param content_url: The URL of the new review
     :type content_url: str
     :param h_review: The h-review object that contains the new review
