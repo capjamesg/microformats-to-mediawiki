@@ -48,7 +48,11 @@ def create_infobox(latitude: int, longitude: int, page_text: str) -> Tuple[str, 
 
 
 def update_existing_review_section(
-    review_section_start: int, content_url: str, h_review: str, domain: str
+    review_section_start: int,
+    content_url: str,
+    h_review: str,
+    domain: str,
+    page_text: str,
 ) -> str:
     """
     Adds a new review to an existing review section.
@@ -61,12 +65,20 @@ def update_existing_review_section(
     :type h_review: str
     :param domain: The domain of the person who wrote the review
     :type domain: str
+    :param page_text: The text of the wiki page to create
+    :type page_text: str
     :return: The text of the page with the new review added and an updateed aggregate review
     :rtype: str
     """
     page_text_after_reviews = page_text[review_section_start:]
 
-    page_text += f"<div class='h-review'>\n=== <a href='{content_url}' class='p-name'>{h_review['name'][0]}</a> by {domain} - <data value='{h_review['rating'][0]}' class='p-rating'>{h_review['rating'][0]} stars</data> ===\n<blockquote>{h_review['content'][0]['html']}</blockquote></div>"
+    page_text += f"""
+        <div class='h-review'>
+            \n=== <a href='{content_url}' class='p-name'>{h_review['name'][0]}</a>
+            by {domain} -
+             <data value='{h_review['rating'][0]}' class='p-rating'>{h_review['rating'][0]} stars</data>
+            ===\n
+        <blockquote>{h_review['content'][0]['html']}</blockquote></div>"""
 
     page_text = page_text[:review_section_start] + page_text_after_reviews
 
@@ -93,7 +105,13 @@ def update_existing_review_section(
     # replace h-review-aggregate
     page_text = page_text.replace(
         page_text_aggregate,
-        f"\n\n<div class='h-review-aggregate'><span class='p-item'>{h_review['name'][0]}</span> aggregate review: {star_emojis} - <data value='{stars}' class='p-average'>{stars}</data>/<data value='5' class='p-best'>5</data> (<data value='{len(ratings)}' class='p-votes'>{len(ratings)}</data> ratings)</div>\n\n{addyourself}\n",
+        f"""\n\n<div class='h-review-aggregate'>
+            <span class='p-item'>{h_review['name'][0]}</span>
+            aggregate review: {star_emojis} -
+            <data value='{stars}' class='p-average'>{stars}</data>
+            /<data value='5' class='p-best'>5</data>
+             (<data value='{len(ratings)}' class='p-votes'>{len(ratings)}</data>
+            ratings)</div>\n\n{addyourself}\n""",
     )
 
     return page_text
@@ -124,9 +142,20 @@ def create_new_review_section(
 
     page_text += "\n\n<div class='h-feed'>\n== Reviews ==\n\n"
 
-    page_text += f"<div class='h-review'>\n=== <a href='{content_url}' class='p-name'>{h_review['name'][0]}</a> by {domain} - <data value='{h_review['rating'][0]}' class='p-rating'>{h_review['rating'][0]} stars</data> ===\n<blockquote>{h_review['content'][0]['html']}</blockquote></div>"
+    page_text += f"""<div class='h-review'>\n===
+        <a href='{content_url}' class='p-name'>{h_review['name'][0]}</a>
+        by {domain} -
+         <data value='{h_review['rating'][0]}' class='p-rating'>{h_review['rating'][0]} stars</data> ===\n
+        <blockquote>{h_review['content'][0]['html']}</blockquote></div>"""
 
-    page_text += f"\n<div class='h-review-aggregate'><span class='p-item'>{h_review['name'][0]}</span> aggregate review: {star_emojis} - <data value='{h_review['rating'][0]}' class='p-average'>{h_review['rating'][0]}</data>/<data value='5' class='p-best'>5</data> (<data value='1' class='p-votes'>1</data> rating)\n{addyourself}</div>"
+    page_text += f"""\n
+        <div class='h-review-aggregate'>
+            <span class='p-item'>{h_review['name'][0]}</span> aggregate review: {star_emojis}
+            - <data value='{h_review['rating'][0]}' class='p-average'>{h_review['rating'][0]}</data>
+            /<data value='5' class='p-best'>5</data>
+            (<data value='1' class='p-votes'>1</data> rating)\n
+            {addyourself}
+        </div>"""
 
     page_text += f"[[Category:{address['city']}]]"
     page_text += f"[[Category:{address['country']}]]"
@@ -197,7 +226,7 @@ def parse_h_review(
         )
     else:
         page_text = update_existing_review_section(
-            review_section_start, content_url, h_review, domain
+            review_section_start, content_url, h_review, domain, page_text
         )
 
     content_details = {

@@ -1,20 +1,19 @@
 from urllib.parse import urlparse as urlparse_func
 
-from flask import Flask, abort, jsonify, request, Response
+from flask import Flask, Response, abort, jsonify, request
 
 from config import API_URL, PASSPHRASE
-from mediawiki import (
-    SyndicationLinkNotPresent,
-    UserNotAuthorized,
-    get_csrf_token,
-    get_login_token_state,
-    log_in,
-    parse_url,
-    submit_edit_request,
-    verify_user_is_authorized,
-)
+from mediawiki import (SyndicationLinkNotPresent, UserNotAuthorized,
+                       get_csrf_token, get_login_token_state, log_in,
+                       parse_url, submit_edit_request,
+                       verify_user_is_authorized)
 
 app = Flask(__name__)
+
+
+@app.route("/")
+def index():
+    return jsonify({})
 
 
 @app.route("/webhook", methods=["POST"])
@@ -50,7 +49,7 @@ def submit_post():
         )
 
         submit_edit_request(content_details, session, API_URL, csrf_token)
-    except SyndicationLinkNotPresent as e:
+    except SyndicationLinkNotPresent:
         abort(400)
 
     # set Location header

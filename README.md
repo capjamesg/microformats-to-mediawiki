@@ -8,7 +8,7 @@ This project is being used on the [Breakfast and Coffee](https://breakfastand.co
 
 First, install the required dependencies for this project:
 
-    python3 -r requirements.txt
+    pip3 -r requirements.txt
 
 Then, create a config.py file with the following variables:
 
@@ -29,6 +29,12 @@ The web server creates an endpoint at /webhook where you can send POST requests.
 The endpoint looks for a payload from [webmention.io](https://webmention.io), which is being used to host the [Breakfast and Coffee](https://breakfastand.coffee) Webmention endpoint.
 
 You can change the "url_to_parse" variable to change the way in which the URL to parse is retrieved, depending on how you want your webhook to work.
+
+### Type checking and linting
+
+You can run a type check and lint on this codebase using the following command:
+
+    tox
 
 ## API Documentation
 

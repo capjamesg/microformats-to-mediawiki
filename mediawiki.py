@@ -16,6 +16,7 @@ class SyndicationLinkNotPresent(Exception):
 
     https://indieweb.org/u-syndication
     """
+
     pass
 
 
@@ -23,10 +24,11 @@ class UserNotAuthorized(Exception):
     """
     A user is not authorised to edit the MediaWiki page.
     """
+
     pass
 
 
-def get_login_token_state(url: str) -> Tuple[requests.Session, requests.Response]:
+def get_login_token_state(url: str) -> Tuple[requests.Response, requests.Session]:
     """
     Gets a login token from the MediaWiki API.
 
@@ -50,9 +52,7 @@ def get_login_token_state(url: str) -> Tuple[requests.Session, requests.Response
     return token_request, session
 
 
-def log_in(
-    url: str, token_request: str, session: requests.Session
-):
+def log_in(url: str, token_request: str, session: requests.Session):
     """
     Log in to the MediaWiki API.
 
@@ -155,9 +155,7 @@ def verify_user_is_authorized(
         raise UserNotAuthorized
 
 
-def parse_url(
-    content_url: str, csrf_token: str
-) -> Tuple[Dict[str, str]]:
+def parse_url(content_url: str, csrf_token: str) -> Tuple[Dict[str, str], str]:
     """
     Retrieves a h-review or h-entry from a URL, checks for a syndication link,
     and makes a dictionary with information that will be used to create the
@@ -195,7 +193,7 @@ def parse_url(
     if not h_entry.get("syndication"):
         raise SyndicationLinkNotPresent
 
-    if not SYNDICATION_LINK in h_entry.get("syndication"):
+    if SYNDICATION_LINK not in h_entry.get("syndication"):
         raise SyndicationLinkNotPresent
 
     content_details = {
@@ -225,7 +223,7 @@ def submit_edit_request(
 ) -> None:
     """
     Submits an edit request to the MediaWiki API.
-    
+
     Edit requests create a new page if the specified page does not exist.
 
     :param content_details: A dictionary of information about the page to edit.
