@@ -138,25 +138,20 @@ def create_new_review_section(
     :return: The text of the page with a new reviews section and categories set
         for the city and country of the place being reviewed
     """
-    star_no_decimal_places = round(h_review["rating"][0])
+    star_no_decimal_places = round(int(h_review["rating"][0]))
 
     star_emojis = "⭐" * star_no_decimal_places
 
     page_text += "\n\n<div class='h-feed'>\n== Reviews ==\n\n"
 
-    page_text += f"""<div class='h-review'>\n===
-        <a href='{content_url}' class='p-name'>{h_review['name'][0]}</a>
-        by {domain} -
-         <data value='{h_review['rating'][0]}' class='p-rating'>{h_review['rating'][0]} stars</data> ===\n
-        <blockquote>{h_review['content'][0]['html']}</blockquote></div>"""
+    page_text += f"""<div class='h-review'>\n===<a href='{content_url}' class='p-name'>{h_review['name'][0]}</a> by {domain} - <data value='{h_review['rating'][0]}' class='p-rating'>{h_review['rating'][0]} stars</data> ===\n
+        <blockquote>{h_review['content'][0]['html']}</blockquote>"""
 
     page_text += f"""\n
         <div class='h-review-aggregate'>
-            <span class='p-item'>{h_review['name'][0]}</span> aggregate review: {star_emojis}
-            - <data value='{h_review['rating'][0]}' class='p-average'>{h_review['rating'][0]}</data>
-            /<data value='5' class='p-best'>5</data>
-            (<data value='1' class='p-votes'>1</data> rating)\n
-            {addyourself}
+            <p><span class='p-item'>{h_review['name'][0]}</span> aggregate review: {star_emojis} - <data value='{h_review['rating'][0]}' class='p-average'>{h_review['rating'][0]}</data>/<data value='5' class='p-best'>5</data>
+            (<data value='1' class='p-votes'>1</data> rating)\n</p>
+            <p>{addyourself}</p>
         </div>"""
 
     page_text += f"[[Category:{address['city']}]]"
