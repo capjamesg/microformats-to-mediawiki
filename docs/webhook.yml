@@ -1,0 +1,33 @@
+description: Creates or edits a post on a MediaWiki.
+components:
+    securitySchemes:
+        APIKeyAuth:
+          type: apiKey
+          in: query
+          name: passphrase
+security:
+    - APIKeyAuth: []
+consumes:
+    application/json
+parameters:
+    - in: body
+      name: body
+      required: true
+      description: JSON object containing a URL of a post to retrieve.
+      schema:
+        type: "object"
+        properties:
+            post:
+              type: "object"
+              properties:
+                url:
+                  type: string
+post:
+    summary: Creates or edits a post on a MediaWiki.
+responses:
+    200:
+        description: The post was created or edited successfully.
+    400:
+        description: The request was malformed.
+    403:
+        description: The user is not authorized to use the endpoint or make edits to the MediaWiki.

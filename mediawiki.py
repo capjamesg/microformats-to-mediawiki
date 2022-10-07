@@ -1,10 +1,10 @@
-from typing import Dict, Tuple, Any
+from typing import Any, Dict, Tuple
 from urllib.parse import urlparse as urlparse_func
 
 import mf2py
 import requests
 
-from config import LGNAME, LGPASSWORD, SYNDICATION_LINK
+from config import API_URL, LGNAME, LGPASSWORD, SYNDICATION_LINK
 from hreview import parse_h_review
 
 
@@ -155,7 +155,9 @@ def verify_user_is_authorized(
         raise UserNotAuthorized
 
 
-def parse_url(content_url: str, csrf_token: str) -> Tuple[Dict[str, Any], str]:
+def parse_url(
+    content_url: str, csrf_token: str, session: requests.Session
+) -> Tuple[Dict[str, Any], str]:
     """
     Retrieves a h-review or h-entry from a URL, checks for a syndication link,
     and makes a dictionary with information that will be used to create the
@@ -172,16 +174,34 @@ def parse_url(content_url: str, csrf_token: str) -> Tuple[Dict[str, Any], str]:
     """
     content_parsed = mf2py.parse(url=content_url)
 
-    h_review = [e for e in content_parsed["items"] if e["type"][0] == "h-review"][0][
-        "properties"
-    ]
+    h_reviews = []
+
+    for item in content_parsed["items"]:
+        item_type = item["type"][0]
+
+        if item_type == "h-review":
+            h_reviews.append(item)
+
+        if item_type == "h-entry":
+            parsed_entry = mf2py.parse(doc=item["properties"]["content"][0]["html"])
+
+            for new_item in parsed_entry["items"]:
+                item_type = new_item["type"][0]
+
+                if item_type == "h-review":
+                    print(new_item)
+                    h_reviews.append(new_item["properties"])
 
     domain = urlparse_func(content_url).netloc
 
-    if h_review:
+    html = ""
+
+    for h_review in h_reviews:
         content_details = parse_h_review(h_review, content_parsed, content_url, domain)
 
-        return content_details, csrf_token
+        html += content_details["content"]["html"]
+
+        submit_edit_request(content_details, session, API_URL, csrf_token)
 
     h_entry = [e for e in content_parsed["items"] if e["type"][0] == "h-entry"]
 

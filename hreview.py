@@ -120,7 +120,12 @@ def update_existing_review_section(
 
 
 def create_new_review_section(
-    address: dict, content_url: str, h_review: dict, domain: str, page_text: str
+    address: dict,
+    content_url: str,
+    h_review: dict,
+    domain: str,
+    page_text: str,
+    content: str,
 ) -> str:
     """
     Creates a new "Reviews" section at the bottom of a wiki page.
@@ -145,7 +150,7 @@ def create_new_review_section(
     page_text += "\n\n<div class='h-feed'>\n== Reviews ==\n\n"
 
     page_text += f"""<div class='h-review'>\n===<a href='{content_url}' class='p-name'>{h_review['name'][0]}</a> by {domain} - <data value='{h_review['rating'][0]}' class='p-rating'>{h_review['rating'][0]} stars</data> ===\n
-        <blockquote>{h_review['content'][0]['html']}</blockquote>"""
+        <blockquote>{content}</blockquote>"""
 
     page_text += f"""\n
         <div class='h-review-aggregate'>
@@ -154,8 +159,22 @@ def create_new_review_section(
             <p>{addyourself}</p>
         </div>"""
 
-    page_text += f"[[Category:{address['city']}]]"
-    page_text += f"[[Category:{address['country']}]]"
+    categories = []
+
+    if address != {}:
+        page_text += f"[[Category:{address['city']}]]"
+        page_text += f"[[Category:{address['country']}]]"
+        categories = ([address["city"], address["country"]],)
+
+    page_data = {
+        "url": content_url,
+        "name": h_review["name"][0],
+        "rating": h_review["rating"][0],
+        "domain": domain,
+        "content": content,
+        "categories": categories,
+        "aggregate": {"best": 5, "current": h_review["rating"][0], "vote_count": 1},
+    }
 
     return page_text
 
@@ -198,32 +217,41 @@ def parse_h_review(
 
     # get == Reviews == section
     review_section_start = page_text.find("== Reviews ==")
-    h_review["content"][0]["html"] = (
-        BeautifulSoup(h_review["content"][0]["html"], "html.parser")
-        .get_text()
-        .replace("\n", " ")
-    )
+
+    content = ""
+
+    if h_review.get("content"):
+        content = (
+            BeautifulSoup(h_review["content"][0]["html"], "html.parser")
+            .get_text()
+            .replace("\n", " ")
+        )
+    elif h_review.get("description"):
+        content = h_review["description"][0]
 
     h_geo = [
-        e for e in content_parsed["items"][0]["children"] if e["type"][0] == "h-geo"
+        e
+        for e in content_parsed["items"][0].get("children", "")
+        if e.get("type") and e["type"][0] == "h-geo"
     ]
 
     if h_geo:
         latitude = h_geo[0]["properties"]["latitude"][0]
         longitude = h_geo[0]["properties"]["longitude"][0]
+
+        page_text, address = create_infobox(latitude, longitude, page_text)
     else:
         latitude = None
         longitude = None
+        address = {}
 
     if review_section_start == -1:
-        page_text, address = create_infobox(latitude, longitude, page_text)
-
         page_text = create_new_review_section(
-            address, content_url, h_review, domain, page_text
+            address, content_url, h_review, domain, page_text, content
         )
     else:
         page_text = update_existing_review_section(
-            review_section_start, content_url, h_review, domain, page_text
+            review_section_start, content_url, h_review, domain, page_text, content
         )
 
     content_details = {
