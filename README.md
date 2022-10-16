@@ -85,7 +85,7 @@ All edits are made in the name of the bot user specified in your configuration f
 
 ## License
 
-This project is licensed under the [MIT license](LICENSE).
+This project is licensed under the [MIT 0 license](LICENSE).
 
 ## Contributors
 
