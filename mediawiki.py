@@ -47,11 +47,11 @@ def update_map_on_category_page(category):
 
     print(h_geos)
 
-    url = "/map?coordinates=" + "".join([str(h_geo["properties"]["latitude"][0]) + "," + str(h_geo["properties"]["longitude"][0]) + "|" for h_geo in h_geos]).rstrip("|")
+    url = "map?coordinates=" + "".join([str(h_geo["properties"]["latitude"][0]) + "," + str(h_geo["properties"]["longitude"][0]) + "|" for h_geo in h_geos]).rstrip("|")
 
     content_details = {
         "name": "Category:" + category,
-        "content": {"html": "<iframe src=\"" + url + "\" width=\"100%\" height=\"600px\"></iframe>"},
+        "content": {"html": "<iframe path=\"" + url + "\" width=\"100%\" height=\"600px\" key=\"cbc\" />"},
         "url": "https://breakfastand.coffee/" + category,
     }
 

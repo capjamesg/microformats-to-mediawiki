@@ -5,6 +5,7 @@ import mf2py
 import requests
 from bs4 import BeautifulSoup
 from jinja2 import Template
+from mediawiki import update_map_on_category_page
 
 from config import API_URL
 
@@ -149,7 +150,6 @@ def get_all_h_geos(urls):
 
 def create_map(urls):
     h_geos = get_all_h_geos(urls)
-    print(h_geos)
 
     with open("templates/mapindex.html", "r") as f:
         template = Template(f.read())
@@ -220,6 +220,9 @@ def create_new_review_section(
         page_text += f"[[Category:{address['city']}]]"
         page_text += f"[[Category:{address['country']}]]"
         categories = ([address["city"], address["country"]],)
+
+    for c in categories:
+        update_map_on_category_page(c)
 
     page_data = {
         "url": content_url,
