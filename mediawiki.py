@@ -5,7 +5,7 @@ import mf2py
 import requests
 
 from config import API_URL, LGNAME, LGPASSWORD, SYNDICATION_LINK
-from hreview import parse_h_review
+from hreview import parse_h_review, get_all_h_geos, create_map
 
 
 class SyndicationLinkNotPresent(Exception):
@@ -26,6 +26,49 @@ class UserNotAuthorized(Exception):
     """
 
     pass
+
+def update_map_on_category_page(category):
+    # get h-geos on all https://breakfastand.coffee/api.php?format=json&action=query&generator=categorymembers&gcmtype=page&gcmlimit=max&gcmtitle=Category:Leeds pages
+    url = "https://breakfastand.coffee/api.php?format=json&action=query&generator=categorymembers&gcmtype=page&gcmlimit=max&gcmtitle=Category:" + category
+
+    r = requests.get(url)
+
+    if r.status_code != 200:
+        raise Exception
+
+    data = r.json()
+
+    pages = data["query"]["pages"]
+
+    h_geos = []
+
+    for p in pages:
+        h_geos.extend(get_all_h_geos(["https://breakfastand.coffee/" + pages[p]["title"]]))
+
+    print(h_geos)
+
+    url = "/map?coordinates=" + "".join([str(h_geo["properties"]["latitude"][0]) + "," + str(h_geo["properties"]["longitude"][0]) + "|" for h_geo in h_geos]).rstrip("|")
+
+    content_details = {
+        "name": "Category:" + category,
+        "content": {"html": "<iframe src=\"" + url + "\" width=\"100%\" height=\"600px\"></iframe>"},
+        "url": "https://breakfastand.coffee/" + category,
+    }
+
+    session = requests.Session()
+
+    token_request, session = get_login_token_state(API_URL)
+
+    log_in(API_URL, token_request, session)
+
+    csrf_token_request = get_csrf_token(API_URL, session)
+
+    submit_edit_request(
+        content_details,
+        session,
+        API_URL,
+        csrf_token_request,
+    )
 
 
 def get_login_token_state(url: str) -> Tuple[requests.Response, requests.Session]:
@@ -289,6 +332,7 @@ def submit_edit_request(
     }
 
     try:
-        session.post(api_url, data=edit_page_params)
+        result = session.post(api_url, data=edit_page_params)
+        print(result.text)
     except requests.exceptions.RequestException as exception:
         raise exception

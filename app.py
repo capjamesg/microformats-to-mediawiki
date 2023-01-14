@@ -1,12 +1,13 @@
 from urllib.parse import urlparse as urlparse_func
 
-from flasgger import Swagger, swag_from
-from flask import Flask, Response, jsonify, request
+# from flasgger import Swagger, swag_from
+from flask import Flask, Response, jsonify, request, render_template
 
 from config import API_URL, PASSPHRASE
 from mediawiki import (SyndicationLinkNotPresent, UserNotAuthorized,
                        get_csrf_token, get_login_token_state, log_in,
-                       parse_url, verify_user_is_authorized)
+                       parse_url, verify_user_is_authorized, update_map_on_category_page)
+from hreview import create_map
 
 app = Flask(__name__)
 
@@ -16,7 +17,7 @@ app.config["SWAGGER"] = {
     "version": "0.1.0",
 }
 
-swagger = Swagger(app)
+# swagger = Swagger(app)
 
 
 @app.route("/")
@@ -25,7 +26,7 @@ def index():
 
 
 @app.route("/webhook", methods=["POST"])
-@swag_from("docs/webhook.yml")
+# @swag_from("docs/webhook.yml")
 def submit_post():
     passphrase = request.args.get("passphrase")
 
@@ -69,3 +70,22 @@ def submit_post():
     response.headers["Location"] = url_to_parse
 
     return response
+
+@app.route("/map")#, methods=["POST"])
+# @swag_from("docs/map.yml")
+def map():
+    coordinates = request.args.get("coordinates")
+
+    coordinate_list = coordinates.split("|")
+
+    coordinate_lists = [coordinate.split(",") for coordinate in coordinate_list]
+
+    coordinate_lists = [[float(coordinate) for coordinate in coordinate_list] for coordinate_list in coordinate_lists]
+
+    return render_template("mapindex.html", coordinates=coordinate_lists)
+
+@app.route("/map/update")
+def update_map():
+    update_map_on_category_page("Leeds")
+
+    return ""

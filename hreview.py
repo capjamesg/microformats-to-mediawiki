@@ -4,6 +4,7 @@ from typing import Dict, Tuple
 import mf2py
 import requests
 from bs4 import BeautifulSoup
+from jinja2 import Template
 
 from config import API_URL
 
@@ -117,6 +118,60 @@ def update_existing_review_section(
         )
 
     return page_text
+
+
+def get_all_h_geos(urls):
+    h_geos = []
+
+    for u in urls:
+        try:
+            r = requests.get(u)
+        except requests.exceptions.RequestException:
+            return []
+
+        parser = mf2py.Parser(doc=r.text, url=u)
+
+        mf2_parser = parser.to_dict(filter_by_type="h-review")
+
+        for item in mf2_parser:
+            properties = item["children"]
+
+            for p in properties:
+                if p["type"][0] == "h-geo":
+                    h_geos.append(p)
+
+        mf2_parser = parser.to_dict(filter_by_type="h-geo")
+
+        for item in mf2_parser:
+            h_geos.append(item)
+
+    return h_geos
+
+def create_map(urls):
+    h_geos = get_all_h_geos(urls)
+    print(h_geos)
+
+    with open("templates/mapindex.html", "r") as f:
+        template = Template(f.read())
+
+    coordinates = []
+
+    coordinate_string = ""
+
+    for geo in h_geos:
+        latitude = geo["properties"]["latitude"][0]
+        longitude = geo["properties"]["longitude"][0]
+
+        coordinates.append([latitude, longitude])
+        coordinate_string += f"{latitude},{longitude}|"
+
+    template_vars = {"coordinates": coordinates}
+
+    url = "/map?coordinates=" + coordinate_string.rstrip("|")
+
+    print(url)
+
+    return template.render(template_vars), url
 
 
 def create_new_review_section(
