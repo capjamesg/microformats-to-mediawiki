@@ -5,7 +5,7 @@ import mf2py
 import requests
 from bs4 import BeautifulSoup
 from jinja2 import Template
-from mediawiki import update_map_on_category_page
+import mediawiki
 
 from config import API_URL
 
@@ -44,7 +44,18 @@ def create_infobox(latitude: int, longitude: int, page_text: str) -> Tuple[str, 
     |address={address_string}
     """
 
-    page_text += "{{" + infobox + "}}"
+    mediawiki.update_map_on_category_page(address["city"])
+    mediawiki.update_map_on_category_page(address["country"])
+
+    # create hgeo object
+    h_geo = f"""
+    <div class="h-geo" style="display: none;">
+    <data class="p-latitude" value="{latitude}"></data>
+    <data class="p-longitude" value="{longitude}"></data>
+    </div>
+    """
+
+    page_text += "{{" + infobox + "}}" + h_geo
 
     return page_text, address
 
@@ -169,8 +180,6 @@ def create_map(urls):
 
     url = "/map?coordinates=" + coordinate_string.rstrip("|")
 
-    print(url)
-
     return template.render(template_vars), url
 
 
@@ -198,6 +207,7 @@ def create_new_review_section(
     :return: The text of the page with a new reviews section and categories set
         for the city and country of the place being reviewed
     """
+    # h_review = h_review["properties"]
     star_no_decimal_places = round(int(h_review["rating"][0]))
 
     star_emojis = "⭐" * star_no_decimal_places
@@ -221,24 +231,14 @@ def create_new_review_section(
         page_text += f"[[Category:{address['country']}]]"
         categories = ([address["city"], address["country"]],)
 
-    for c in categories:
-        update_map_on_category_page(c)
-
-    page_data = {
-        "url": content_url,
-        "name": h_review["name"][0],
-        "rating": h_review["rating"][0],
-        "domain": domain,
-        "content": content,
-        "categories": categories,
-        "aggregate": {"best": 5, "current": h_review["rating"][0], "vote_count": 1},
-    }
+    # for c in categories:
+    #     update_map_on_category_page(c)
 
     return page_text
 
 
 def parse_h_review(
-    h_review: dict, content_parsed: dict, content_url: str, domain: str
+    h_review: dict, content_parsed: dict, content_url: str, domain: str, titles: list
 ) -> Dict[str, str]:
     """
     Parses a h-review object and returns the contents for the new or revised wiki page.
@@ -254,10 +254,12 @@ def parse_h_review(
     :return: The information needed to create the new wiki page.
     :rtype: Dict[str, str]
     """
+    h_review = h_review["properties"]
+
     page_content = {
         "action": "query",
         "prop": "revisions",
-        "titles": h_review["name"][0].replace(" - ", " ").replace(" ", "_"),
+        "titles": titles,
         "rvslots": "*",
         "rvprop": "content",
         "formatversion": "2",
@@ -311,6 +313,16 @@ def parse_h_review(
         page_text = update_existing_review_section(
             review_section_start, content_url, h_review, domain, page_text, content
         )
+
+    photo_section_start = page_text.find("== Photos ==")
+
+    if h_review.get("photo"):
+        if photo_section_start == -1:
+            page_text += "\n\n== Photos ==\n\n"
+
+        photo_url = h_review["photo"][0]
+        photo_url = photo_url.replace(" ", "%20")
+        page_text += f'\n<span class="plainlinks">[{{fullurl:MediaWiki}} {photo_url}]\n</span>'
 
     content_details = {
         "name": h_review["name"][0],

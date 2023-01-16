@@ -28,13 +28,13 @@ def index():
 @app.route("/webhook", methods=["POST"])
 # @swag_from("docs/webhook.yml")
 def submit_post():
-    passphrase = request.args.get("passphrase")
+    # passphrase = request.args.get("passphrase")
 
-    if passphrase != PASSPHRASE:
-        return jsonify({"error": "user not authorised"}), 403
+    # if passphrase != PASSPHRASE:
+    #     return jsonify({"error": "user not authorised"}), 403
 
-    if request.json is None:
-        return jsonify({"error": "invalid request body"}), 400
+    # if request.json is None:
+    #     return jsonify({"error": "invalid request body"}), 400
 
     request_body = request.json.get("post")
 
@@ -60,10 +60,10 @@ def submit_post():
     except UserNotAuthorized:
         return jsonify({"error": "user not authorised"}), 403
 
-    try:
-        parse_url(url_to_parse, csrf_token_request, session)
-    except SyndicationLinkNotPresent:
-        return jsonify({"error": "syndication link not present"}), 400
+    # try:
+    parse_url(url_to_parse, csrf_token_request, session)
+    # except SyndicationLinkNotPresent:
+    #     return jsonify({"error": "syndication link not present"}), 400
 
     # set Location header
     response = Response(status=201)

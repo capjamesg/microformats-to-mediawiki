@@ -5,7 +5,7 @@ import mf2py
 import requests
 
 from config import API_URL, LGNAME, LGPASSWORD, SYNDICATION_LINK
-from hreview import parse_h_review, get_all_h_geos, create_map
+from hreview import parse_h_review, get_all_h_geos
 
 
 class SyndicationLinkNotPresent(Exception):
@@ -44,8 +44,6 @@ def update_map_on_category_page(category):
 
     for p in pages:
         h_geos.extend(get_all_h_geos(["https://breakfastand.coffee/" + pages[p]["title"]]))
-
-    print(h_geos)
 
     url = "map?coordinates=" + "".join([str(h_geo["properties"]["latitude"][0]) + "," + str(h_geo["properties"]["longitude"][0]) + "|" for h_geo in h_geos]).rstrip("|")
 
@@ -232,7 +230,6 @@ def parse_url(
                 item_type = new_item["type"][0]
 
                 if item_type == "h-review":
-                    print(new_item)
                     h_reviews.append(new_item["properties"])
 
     domain = urlparse_func(content_url).netloc
@@ -240,13 +237,13 @@ def parse_url(
     html = ""
 
     for h_review in h_reviews:
-        content_details = parse_h_review(h_review, content_parsed, content_url, domain)
+        content_details = parse_h_review(h_review, content_parsed, content_url, domain, h_review["properties"]["name"][0].replace(" - ", " ").replace(" ", "_"))
 
         html += content_details["content"]["html"]
 
         submit_edit_request(content_details, session, API_URL, csrf_token)
 
-    h_entry = [e for e in content_parsed["items"] if e["type"][0] == "h-entry"]
+    h_entry = [e for e in content_parsed["items"] if e["type"][0] == "h-entry" or e["type"][0] == "h-review"]
 
     if len(h_entry) == 0:
         raise Exception
@@ -259,11 +256,11 @@ def parse_url(
     categories = [f"[[Category:{c}]]" for c in h_entry_item["category"]]
 
     # check for syndication link
-    if not h_entry_item.get("syndication"):
-        raise SyndicationLinkNotPresent
+    # if not h_entry_item.get("syndication"):
+    #     raise SyndicationLinkNotPresent
 
-    if SYNDICATION_LINK not in h_entry_item.get("syndication"):
-        raise SyndicationLinkNotPresent
+    # if SYNDICATION_LINK not in h_entry_item.get("syndication"):
+    #     raise SyndicationLinkNotPresent
 
     name = h_entry_item.get("name") or ""
 
@@ -333,6 +330,5 @@ def submit_edit_request(
 
     try:
         result = session.post(api_url, data=edit_page_params)
-        print(result.text)
     except requests.exceptions.RequestException as exception:
         raise exception
