@@ -1,14 +1,15 @@
 from urllib.parse import urlparse as urlparse_func
 
+import requests
 # from flasgger import Swagger, swag_from
-from flask import Flask, Response, jsonify, request, render_template
+from flask import Flask, Response, jsonify, render_template, request
 
 from config import API_URL, PASSPHRASE
+from hreview import create_map
 from mediawiki import (SyndicationLinkNotPresent, UserNotAuthorized,
                        get_csrf_token, get_login_token_state, log_in,
-                       parse_url, verify_user_is_authorized, update_map_on_category_page)
-from hreview import create_map
-import requests
+                       parse_url, update_map_on_category_page,
+                       verify_user_is_authorized)
 
 app = Flask(__name__)
 
@@ -24,8 +25,15 @@ app.config["SWAGGER"] = {
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        content_details, _, post_type  = parse_url(request.form["url"], "", requests.Session, False)
-        return render_template("index.html", url=request.form["url"], markup=content_details["content"]["html"], post_type=post_type)
+        content_details, _, post_type = parse_url(
+            request.form["url"], "", requests.Session, False
+        )
+        return render_template(
+            "index.html",
+            url=request.form["url"],
+            markup=content_details["content"]["html"],
+            post_type=post_type,
+        )
 
     return render_template("index.html")
 
@@ -33,13 +41,13 @@ def index():
 @app.route("/webhook", methods=["POST"])
 # @swag_from("docs/webhook.yml")
 def submit_post():
-    # passphrase = request.args.get("passphrase")
+    passphrase = request.args.get("passphrase")
 
-    # if passphrase != PASSPHRASE:
-    #     return jsonify({"error": "user not authorised"}), 403
+    if passphrase != PASSPHRASE:
+        return jsonify({"error": "user not authorised"}), 403
 
-    # if request.json is None:
-    #     return jsonify({"error": "invalid request body"}), 400
+    if request.json is None:
+        return jsonify({"error": "invalid request body"}), 400
 
     request_body = request.json.get("post")
 
@@ -79,7 +87,8 @@ def submit_post():
 
     return response
 
-@app.route("/map")#, methods=["POST"])
+
+@app.route("/map")  # , methods=["POST"])
 # @swag_from("docs/map.yml")
 def map():
     coordinates = request.args.get("coordinates")
@@ -88,9 +97,13 @@ def map():
 
     coordinate_lists = [coordinate.split(",") for coordinate in coordinate_list]
 
-    coordinate_lists = [[float(coordinate) for coordinate in coordinate_list] for coordinate_list in coordinate_lists]
+    coordinate_lists = [
+        [float(coordinate) for coordinate in coordinate_list]
+        for coordinate_list in coordinate_lists
+    ]
 
     return render_template("mapindex.html", coordinates=coordinate_lists)
+
 
 @app.route("/map/update")
 def update_map():

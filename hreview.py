@@ -5,8 +5,8 @@ import mf2py
 import requests
 from bs4 import BeautifulSoup
 from jinja2 import Template
-import mediawiki
 
+import mediawiki
 from config import API_URL
 
 addyourself = "{{" + "addyourself" + "}}"
@@ -166,6 +166,7 @@ def get_all_h_geos(urls: list) -> list:
             h_geos.append(item)
 
     return h_geos
+
 
 def create_map(urls: list) -> tuple:
     """
@@ -339,7 +340,9 @@ def parse_h_review(
 
         photo_url = h_review["photo"][0]
         photo_url = photo_url.replace(" ", "%20")
-        page_text += f'\n<span class="plainlinks">[{{fullurl:MediaWiki}} {photo_url}]\n</span>'
+        page_text += (
+            f'\n<span class="plainlinks">[{{fullurl:MediaWiki}} {photo_url}]\n</span>'
+        )
 
     content_details = {
         "name": h_review["name"][0],

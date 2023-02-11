@@ -4,9 +4,9 @@ from urllib.parse import urlparse as urlparse_func
 import mf2py
 import requests
 
-from config import API_URL, LGNAME, LGPASSWORD, SYNDICATION_LINK
-from hreview import parse_h_review, get_all_h_geos
+from config import API_URL, LGNAME, LGPASSWORD, SYNDICATION_LINK, REQUIRE_SYNDICATION_LINK
 from hrecipe import parse_h_recipe
+from hreview import get_all_h_geos, parse_h_review
 
 
 class SyndicationLinkNotPresent(Exception):
@@ -28,9 +28,13 @@ class UserNotAuthorized(Exception):
 
     pass
 
+
 def update_map_on_category_page(category):
     # get h-geos on all https://breakfastand.coffee/api.php?format=json&action=query&generator=categorymembers&gcmtype=page&gcmlimit=max&gcmtitle=Category:Leeds pages
-    url = "https://breakfastand.coffee/api.php?format=json&action=query&generator=categorymembers&gcmtype=page&gcmlimit=max&gcmtitle=Category:" + category
+    url = (
+        "https://breakfastand.coffee/api.php?format=json&action=query&generator=categorymembers&gcmtype=page&gcmlimit=max&gcmtitle=Category:"
+        + category
+    )
 
     r = requests.get(url)
 
@@ -44,13 +48,27 @@ def update_map_on_category_page(category):
     h_geos = []
 
     for p in pages:
-        h_geos.extend(get_all_h_geos(["https://breakfastand.coffee/" + pages[p]["title"]]))
+        h_geos.extend(
+            get_all_h_geos(["https://breakfastand.coffee/" + pages[p]["title"]])
+        )
 
-    url = "map?coordinates=" + "".join([str(h_geo["properties"]["latitude"][0]) + "," + str(h_geo["properties"]["longitude"][0]) + "|" for h_geo in h_geos]).rstrip("|")
+    url = "map?coordinates=" + "".join(
+        [
+            str(h_geo["properties"]["latitude"][0])
+            + ","
+            + str(h_geo["properties"]["longitude"][0])
+            + "|"
+            for h_geo in h_geos
+        ]
+    ).rstrip("|")
 
     content_details = {
         "name": "Category:" + category,
-        "content": {"html": "<iframe path=\"" + url + "\" width=\"100%\" height=\"600px\" key=\"cbc\" />"},
+        "content": {
+            "html": '<iframe path="'
+            + url
+            + '" width="100%" height="600px" key="cbc" />'
+        },
         "url": "https://breakfastand.coffee/" + category,
     }
 
@@ -252,7 +270,13 @@ def parse_url(
         return content_details, domain, "recipe"
 
     for h_review in h_reviews:
-        content_details = parse_h_review(h_review, content_parsed, content_url, domain, h_review["properties"]["name"][0].replace(" - ", " ").replace(" ", "_"))
+        content_details = parse_h_review(
+            h_review,
+            content_parsed,
+            content_url,
+            domain,
+            h_review["properties"]["name"][0].replace(" - ", " ").replace(" ", "_"),
+        )
 
         html += content_details["content"]["html"]
 
@@ -261,7 +285,11 @@ def parse_url(
 
         return content_details, domain, "review"
 
-    h_entry = [e for e in content_parsed["items"] if e["type"][0] == "h-entry" or e["type"][0] == "h-review"]
+    h_entry = [
+        e
+        for e in content_parsed["items"]
+        if e["type"][0] == "h-entry" or e["type"][0] == "h-review"
+    ]
 
     if len(h_entry) == 0:
         raise Exception
@@ -274,11 +302,11 @@ def parse_url(
     categories = [f"[[Category:{c}]]" for c in h_entry_item.get("category", "")]
 
     # check for syndication link
-    # if not h_entry_item.get("syndication"):
-    #     raise SyndicationLinkNotPresent
+    if not h_entry_item.get("syndication") and REQUIRE_SYNDICATION_LINK:
+        raise SyndicationLinkNotPresent
 
-    # if SYNDICATION_LINK not in h_entry_item.get("syndication"):
-    #     raise SyndicationLinkNotPresent
+    if SYNDICATION_LINK not in h_entry_item.get("syndication") and REQUIRE_SYNDICATION_LINK:
+        raise SyndicationLinkNotPresent
 
     name = h_entry_item.get("name") or ""
 

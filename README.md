@@ -17,8 +17,11 @@ Then, create a config.py file with the following variables:
     LGPASSWORD="your bot password for the wiki you are using"
     SYNDICATION_LINK="your wiki URL"
     API_URL="the URL of your wiki api.php file"
+    REQUIRE_SYNDICATION_LINK=False
     
 You can get the LGNAME and LGPASSWORD values using the [Bot passwords](https://www.mediawiki.org/wiki/Manual:Bot_passwords) MediaWiki feature.
+
+If `REQUIRE_SYNDICATION_LINK` is set to `True`, the API will only accept posts that have a syndication link to the wiki homepage. This is useful if you want to ensure that only posts that are syndicated to your wiki are added to the wiki. If you set this to `False`, the API will accept any post that has a valid URL and the right markup.
 
 Finally, run the web server:
 
