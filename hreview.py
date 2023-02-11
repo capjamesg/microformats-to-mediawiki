@@ -34,17 +34,17 @@ def create_infobox(latitude: int, longitude: int, page_text: str) -> Tuple[str, 
 
     address = nominatim_information.json()["address"]
 
-    address_string = f"{address['road']}, {address['postcode']} {address['city']}, {address['country']}"
+    address_string = f"{address['road']}, {address['postcode']} {address.get('city', '')}, {address['country']}"
 
     infobox = f"""
     Infobox
-    |location={address['city']}, {address['country']}
+    |location={address.get('city')}, {address['country']}
     |lat={latitude}
     |long={longitude}
     |address={address_string}
     """
 
-    mediawiki.update_map_on_category_page(address["city"])
+    # mediawiki.update_map_on_category_page(address.get("city"))
     mediawiki.update_map_on_category_page(address["country"])
 
     # create hgeo object
@@ -132,7 +132,15 @@ def update_existing_review_section(
     return page_text
 
 
-def get_all_h_geos(urls):
+def get_all_h_geos(urls: list) -> list:
+    """
+    Gets all h-geo objects from a list of URLs.
+
+    :param urls: A list of URLs from which to get h-geo objects
+    :type urls: list
+    :return: A list of h-geo objects
+    :rtype: list
+    """
     h_geos = []
 
     for u in urls:
@@ -159,7 +167,16 @@ def get_all_h_geos(urls):
 
     return h_geos
 
-def create_map(urls):
+def create_map(urls: list) -> tuple:
+    """
+    Creates a map of all h-geo objects in a list of URLs.
+
+    :param urls: A list of URLs from which to get h-geo objects
+    :type urls: list
+    :return: A tuple containing the HTML for the map and the URL for the map
+    :rtype: tuple
+    """
+
     h_geos = get_all_h_geos(urls)
 
     with open("templates/mapindex.html", "r") as f:
@@ -227,9 +244,9 @@ def create_new_review_section(
     categories = []
 
     if address != {}:
-        page_text += f"[[Category:{address['city']}]]"
+        page_text += f"[[Category:{address.get('city')}]]"
         page_text += f"[[Category:{address['country']}]]"
-        categories = ([address["city"], address["country"]],)
+        # categories = ([address["city"], address["country"]],)
 
     # for c in categories:
     #     update_map_on_category_page(c)

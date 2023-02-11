@@ -43,6 +43,9 @@ def submit_post():
 
     url_to_parse = request_body.get("url", "")
 
+    # get url from query string
+    # url_to_parse = request.args.get("url")
+
     if url_to_parse == "":
         return jsonify({"error": "invalid request body"}), 400
 

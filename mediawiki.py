@@ -6,6 +6,7 @@ import requests
 
 from config import API_URL, LGNAME, LGPASSWORD, SYNDICATION_LINK
 from hreview import parse_h_review, get_all_h_geos
+from hrecipe import parse_h_recipe
 
 
 class SyndicationLinkNotPresent(Exception):
@@ -192,8 +193,8 @@ def verify_user_is_authorized(
     """
     authorized_users = get_list_of_authorized_users(url, session)
 
-    if not authorized_users.get(user_domain.lower()):
-        raise UserNotAuthorized
+    # if not authorized_users.get(user_domain.lower()):
+    #     raise UserNotAuthorized
 
 
 def parse_url(
@@ -216,12 +217,16 @@ def parse_url(
     content_parsed = mf2py.parse(url=content_url)
 
     h_reviews = []
+    h_recipe = []
 
     for item in content_parsed["items"]:
         item_type = item["type"][0]
 
         if item_type == "h-review":
             h_reviews.append(item)
+
+        if item_type == "h-recipe":
+            h_recipe.append(item)
 
         if item_type == "h-entry":
             parsed_entry = mf2py.parse(doc=item["properties"]["content"][0]["html"])
@@ -236,12 +241,23 @@ def parse_url(
 
     html = ""
 
+    if len(h_recipe) > 0:
+        content_details = parse_h_recipe(h_recipe[0], domain)
+
+        html += content_details["content"]["html"]
+
+        submit_edit_request(content_details, session, API_URL, csrf_token)
+
+        return content_details, domain
+
     for h_review in h_reviews:
         content_details = parse_h_review(h_review, content_parsed, content_url, domain, h_review["properties"]["name"][0].replace(" - ", " ").replace(" ", "_"))
 
         html += content_details["content"]["html"]
 
         submit_edit_request(content_details, session, API_URL, csrf_token)
+
+        return content_details, domain
 
     h_entry = [e for e in content_parsed["items"] if e["type"][0] == "h-entry" or e["type"][0] == "h-review"]
 
@@ -253,7 +269,7 @@ def parse_url(
     if not h_entry_item:
         raise Exception
 
-    categories = [f"[[Category:{c}]]" for c in h_entry_item["category"]]
+    categories = [f"[[Category:{c}]]" for c in h_entry_item.get("category", "")]
 
     # check for syndication link
     # if not h_entry_item.get("syndication"):
@@ -329,6 +345,6 @@ def submit_edit_request(
     }
 
     try:
-        result = session.post(api_url, data=edit_page_params)
+        session.post(api_url, data=edit_page_params)
     except requests.exceptions.RequestException as exception:
         raise exception

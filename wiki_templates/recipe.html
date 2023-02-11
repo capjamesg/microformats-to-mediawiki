@@ -1,0 +1,13 @@
+Syndicated from [{{ url }} {{domain}}]  on {{date}}.
+
+{% if photo %}{{photo}}{% endif %}{% if results_yield %}Yield: {{results_yield}}{% endif %}{% if duration %}Prep Time: {{duration}}{% endif %}
+{% if description %}{{description}}{% endif %}
+
+{% if ingredients %}
+=== Ingredients ===
+{% for ingredient in ingredients %}
+- {{ingredient}}
+{% endfor %}{% endif %}{% if instructions %}
+=== Instructions ===
+{{instructions}}
+{% endif %}
