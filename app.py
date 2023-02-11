@@ -24,8 +24,8 @@ app.config["SWAGGER"] = {
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        content_details, domain = parse_url(request.form["url"], "", requests.Session, False)
-        return render_template("index.html", url=request.form["url"], markup=content_details["content"]["html"])
+        content_details, _, post_type  = parse_url(request.form["url"], "", requests.Session, False)
+        return render_template("index.html", url=request.form["url"], markup=content_details["content"]["html"], post_type=post_type)
 
     return render_template("index.html")
 

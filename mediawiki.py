@@ -249,7 +249,7 @@ def parse_url(
         if edit == True:
             submit_edit_request(content_details, session, API_URL, csrf_token)
 
-        return content_details, domain
+        return content_details, domain, "recipe"
 
     for h_review in h_reviews:
         content_details = parse_h_review(h_review, content_parsed, content_url, domain, h_review["properties"]["name"][0].replace(" - ", " ").replace(" ", "_"))
@@ -259,7 +259,7 @@ def parse_url(
         if edit == True:
             submit_edit_request(content_details, session, API_URL, csrf_token)
 
-        return content_details, domain
+        return content_details, domain, "review"
 
     h_entry = [e for e in content_parsed["items"] if e["type"][0] == "h-entry" or e["type"][0] == "h-review"]
 
@@ -311,7 +311,7 @@ def parse_url(
         categories
     )
 
-    return content_details, csrf_token
+    return content_details, csrf_token, "entry"
 
 
 def submit_edit_request(

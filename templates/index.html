@@ -2,6 +2,8 @@
 <html>
     <head>
         <title>Breakfast and Coffee Preview</title>
+
+        <link rel="icon" href="https://breakfastand.coffee/logo.png" type="image/x-icon" />
         
         <meta name="description" content="Preview the MediaWiki markup generated from a URL that will be posted to Breakfast and Coffee.">
         <meta property="og:image" content="https://screenshot.jamesg.blog/?url=https://create.breakfastand.coffee">
@@ -84,7 +86,7 @@
             </form>
             {% if markup %}
             <h2>Preview</h2>
-            <p>Generated from <code>{{ url }}</code></p>
+            <p>Generated a {{ post_type }} from <code>{{ url }}</code></p>
             <pre>
                 <code>
 {{markup}}
