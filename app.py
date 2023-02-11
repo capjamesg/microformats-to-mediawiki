@@ -8,6 +8,7 @@ from mediawiki import (SyndicationLinkNotPresent, UserNotAuthorized,
                        get_csrf_token, get_login_token_state, log_in,
                        parse_url, verify_user_is_authorized, update_map_on_category_page)
 from hreview import create_map
+import requests
 
 app = Flask(__name__)
 
@@ -20,9 +21,13 @@ app.config["SWAGGER"] = {
 # swagger = Swagger(app)
 
 
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 def index():
-    return jsonify({})
+    if request.method == "POST":
+        content_details, domain = parse_url(request.form["url"], "", requests.Session, False)
+        return render_template("index.html", url=request.form["url"], markup=content_details["content"]["html"])
+
+    return render_template("index.html")
 
 
 @app.route("/webhook", methods=["POST"])

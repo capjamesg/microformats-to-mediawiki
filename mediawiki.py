@@ -198,7 +198,7 @@ def verify_user_is_authorized(
 
 
 def parse_url(
-    content_url: str, csrf_token: str, session: requests.Session
+    content_url: str, csrf_token: str, session: requests.Session, edit: bool = True
 ) -> Tuple[Dict[str, Any], str]:
     """
     Retrieves a h-review or h-entry from a URL, checks for a syndication link,
@@ -246,7 +246,8 @@ def parse_url(
 
         html += content_details["content"]["html"]
 
-        submit_edit_request(content_details, session, API_URL, csrf_token)
+        if edit == True:
+            submit_edit_request(content_details, session, API_URL, csrf_token)
 
         return content_details, domain
 
@@ -255,7 +256,8 @@ def parse_url(
 
         html += content_details["content"]["html"]
 
-        submit_edit_request(content_details, session, API_URL, csrf_token)
+        if edit == True:
+            submit_edit_request(content_details, session, API_URL, csrf_token)
 
         return content_details, domain
 
