@@ -25,7 +25,7 @@ six==1.16.0
 soupsieve==2.3.2.post1
 tomli==2.0.1
 tox==3.26.0
-urllib3==1.26.17
+urllib3==1.26.18
 virtualenv==20.16.5
 webencodings==0.5.1
 Werkzeug==2.2.3
